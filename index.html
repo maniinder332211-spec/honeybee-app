@@ -1446,11 +1446,29 @@ if (STATE.uid) postLogin(); // auto-login if session exists
 </body>
 </html>
 <script>
-let coins = 0;
+let coins = localStorage.getItem("coins") ? parseInt(localStorage.getItem("coins")) : 0;
+let cooldown = false;
+
+document.getElementById("coinBalance").innerText = coins;
 
 function watchAd() {
+
+  if (cooldown) {
+    alert("Please wait 10 seconds before watching another ad.");
+    return;
+  }
+
   coins += 10;
+  localStorage.setItem("coins", coins);
   document.getElementById("coinBalance").innerText = coins;
+
   alert("You earned 10 coins!");
+
+  cooldown = true;
+
+  setTimeout(() => {
+    cooldown = false;
+  }, 10000);
+
 }
 </script>
