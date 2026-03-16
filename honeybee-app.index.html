@@ -1443,3 +1443,12 @@ if (STATE.uid) postLogin(); // auto-login if session exists
 </script>
 </body>
 </html>
+<script>
+let coins = 0;
+
+function watchAd() {
+  coins += 10;
+  document.getElementById("coinBalance").innerText = coins;
+  alert("You earned 10 coins!");
+}
+</script>
