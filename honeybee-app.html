@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HoneyBee - Rewards App</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+  tailwind.config = {
+    darkMode:"class",
+    theme:{extend:{
+      colors:{"primary":"#ffc105","background-light":"#f8f8f5","background-dark":"#231e0f"},
+      fontFamily:{"display":["Be Vietnam Pro","sans-serif"]},
+      borderRadius:{"DEFAULT":"0.5rem","lg":"1rem","xl":"1.5rem","full":"9999px"}
+    }}
+  }
+</script>
+<style>
+* { box-sizing: border-box; }
+body { font-family:"Be Vietnam Pro",sans-serif; min-height:max(884px,100dvh); }
+.mso { font-variation-settings:"FILL" 0,"wght" 400,"GRAD" 0,"opsz" 24; }
+.msf { font-variation-settings:"FILL" 1,"wght" 400,"GRAD" 0,"opsz" 24; }
+.screen { display:none; }
+.screen.active { display:flex; flex-direction:column; }
+.hide-sb::-webkit-scrollbar{display:none}
+.hide-sb{-ms-overflow-style:none;scrollbar-width:none}
+.nav-active{color:#ffc105}
+.nav-active .ni{font-variation-settings:"FILL" 1,"wght" 400,"GRAD" 0,"opsz" 24}
+@keyframes pop{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(1.6);opacity:0}}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes scratch-reveal{from{opacity:1}to{opacity:0}}
+@keyframes streak-glow{0%,100%{box-shadow:0 0 0 0 #ffc10540}50%{box-shadow:0 0 16px 4px #ffc10560}}
+.pop{animation:pop 0.3s ease}
+.fadein{animation:fadein 0.3s ease}
+.slideup{animation:slideup 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.modal-card{background:#fff;border-radius:1.5rem 1.5rem 0 0;width:100%;max-width:448px;padding:1.5rem;animation:slideup 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.dark .modal-card{background:#1a1508}
+.coin-flash{animation:pop 0.4s ease}
+.streak-active{animation:streak-glow 2s ease infinite}
+.ad-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.shimmer-card{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+.dark .shimmer-card{background:linear-gradient(90deg,#2a2010 25%,#3a3020 50%,#2a2010 75%);background-size:200% 100%}
+.scratch-canvas{cursor:crosshair;border-radius:1rem;touch-action:none}
+.badge-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700}
+.vpn-warn{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;margin:8px 16px}
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
+
+<div id="app" class="relative mx-auto max-w-md min-h-screen bg-white dark:bg-background-dark shadow-xl overflow-hidden flex flex-col">
+
+<!-- ══════════════════════════════════════
+     SCREEN: AUTH (Login / Register)
+══════════════════════════════════════ -->
+<div id="screen-auth" class="screen active flex-col min-h-screen">
+  <div class="flex flex-col items-center justify-center flex-1 p-8">
+    <div class="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mb-6">
+      <span class="material-symbols-outlined msf text-5xl text-primary">emoji_nature</span>
+    </div>
+    <h1 class="text-3xl font-extrabold mb-1">HoneyBee</h1>
+    <p class="text-slate-500 text-sm mb-8">Watch Ads · Earn Coins · Get Money</p>
+
+    <div id="auth-login" class="w-full space-y-4">
+      <h2 class="text-xl font-bold text-center">Welcome back</h2>
+      <input id="login-email" type="email" placeholder="Email address" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-sm"/>
+      <input id="login-pass" type="password" placeholder="Password" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-sm"/>
+      <p id="login-err" class="text-red-500 text-xs hidden"></p>
+      <button onclick="doLogin()" class="w-full bg-primary text-slate-900 font-bold py-3.5 rounded-xl">Sign In</button>
+      <button onclick="doGuestLogin()" class="w-full border-2 border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-slate-300 font-semibold py-3.5 rounded-xl text-sm">Continue as Guest</button>
+      <p class="text-center text-sm text-slate-500">No account? <button onclick="showAuthTab('register')" class="text-primary font-bold">Register</button></p>
+    </div>
+
+    <div id="auth-register" class="w-full space-y-4 hidden">
+      <h2 class="text-xl font-bold text-center">Create account</h2>
+      <input id="reg-name" type="text" placeholder="Full name" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-sm"/>
+      <input id="reg-email" type="email" placeholder="Email address" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-sm"/>
+      <input id="reg-pass" type="password" placeholder="Password (min 6 chars)" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-sm"/>
+      <input id="reg-ref" type="text" placeholder="Referral code (optional)" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-sm"/>
+      <p id="reg-err" class="text-red-500 text-xs hidden"></p>
+      <button onclick="doRegister()" class="w-full bg-primary text-slate-900 font-bold py-3.5 rounded-xl">Create Account</button>
+      <p class="text-center text-sm text-slate-500">Have an account? <button onclick="showAuthTab('login')" class="text-primary font-bold">Sign In</button></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: HOME
+══════════════════════════════════════ -->
+<div id="screen-home" class="screen flex-col min-h-screen">
+  <div id="vpn-warning" class="vpn-warn hidden">
+    <span class="material-symbols-outlined text-sm align-middle mr-1">warning</span>
+    VPN/Proxy detected. Disable it to earn coins.
+  </div>
+
+  <!-- Header -->
+  <header class="flex items-center justify-between px-4 pt-5 pb-3">
+    <div>
+      <p class="text-xs text-slate-500 font-medium">Good morning,</p>
+      <h2 class="text-lg font-extrabold" id="home-username">BeeMaster</h2>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleDark()" class="p-2 rounded-full hover:bg-primary/10" aria-label="Toggle dark mode">
+        <span id="dark-icon" class="material-symbols-outlined msf text-slate-600 dark:text-slate-300">dark_mode</span>
+      </button>
+      <button onclick="showNotifPanel()" class="p-2 rounded-full hover:bg-primary/10 relative" aria-label="Notifications">
+        <span class="material-symbols-outlined text-slate-600 dark:text-slate-300">notifications</span>
+        <span id="notif-dot" class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Balance Card -->
+  <div class="mx-4 mb-4 bg-primary rounded-2xl p-5 relative overflow-hidden">
+    <div class="absolute -right-6 -top-6 opacity-10" aria-hidden="true">
+      <span class="material-symbols-outlined" style="font-size:120px">emoji_nature</span>
+    </div>
+    <p class="text-slate-900/60 text-xs font-bold uppercase tracking-widest mb-1">Total Balance</p>
+    <div class="flex items-baseline gap-2 mb-3">
+      <span class="text-4xl font-extrabold text-slate-900" id="home-coins">0</span>
+      <span class="text-sm font-bold text-slate-900/60">coins</span>
+    </div>
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-[10px] text-slate-900/50 font-bold uppercase">Cash Value</p>
+        <p class="text-slate-900 font-extrabold" id="home-cash">₹0.00</p>
+      </div>
+      <button onclick="showScreen('withdraw')" class="bg-slate-900 text-primary px-4 py-2 rounded-xl text-sm font-bold">Withdraw</button>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="grid grid-cols-3 gap-2 mx-4 mb-4">
+    <div class="bg-slate-50 dark:bg-white/5 rounded-xl p-3 text-center">
+      <p class="text-lg font-extrabold text-primary" id="stat-ads">0</p>
+      <p class="text-[10px] text-slate-500 font-semibold uppercase">Ads Today</p>
+    </div>
+    <div class="bg-slate-50 dark:bg-white/5 rounded-xl p-3 text-center">
+      <p class="text-lg font-extrabold text-primary" id="stat-streak">0</p>
+      <p class="text-[10px] text-slate-500 font-semibold uppercase">Day Streak</p>
+    </div>
+    <div class="bg-slate-50 dark:bg-white/5 rounded-xl p-3 text-center">
+      <p class="text-lg font-extrabold text-primary" id="stat-refs">0</p>
+      <p class="text-[10px] text-slate-500 font-semibold uppercase">Referrals</p>
+    </div>
+  </div>
+
+  <!-- Banner Ad -->
+  <div class="mx-4 mb-4 rounded-xl overflow-hidden border border-slate-100 dark:border-white/10" aria-label="Advertisement">
+    <div class="bg-gradient-to-r from-slate-800 to-slate-900 flex items-center gap-3 px-4 py-3">
+      <div class="flex-1">
+        <p class="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Sponsored · AdMob</p>
+        <p class="text-white text-sm font-bold">Special offer — tap to earn 5 bonus coins!</p>
+      </div>
+      <button onclick="triggerBannerAd()" class="bg-primary text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0">Open</button>
+    </div>
+  </div>
+
+  <!-- Earn Actions -->
+  <div class="px-4 mb-2">
+    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Earn Coins</h3>
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="watchRewardedAd()" class="bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-2xl p-4 text-left transition-all active:scale-95">
+        <div class="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center mb-3">
+          <span class="material-symbols-outlined text-primary">play_circle</span>
+        </div>
+        <p class="font-bold text-slate-900 dark:text-slate-100 text-sm">Watch Ad</p>
+        <p class="text-xs text-slate-500 mt-0.5">+10 coins each</p>
+        <p class="text-[10px] text-primary font-bold mt-1" id="ads-remaining">20 left today</p>
+      </button>
+      <button onclick="showScreen('spin')" class="bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-left transition-all active:scale-95">
+        <div class="w-10 h-10 bg-amber-100 dark:bg-amber-800/30 rounded-xl flex items-center justify-center mb-3">
+          <span class="material-symbols-outlined text-amber-600 dark:text-amber-400">casino</span>
+        </div>
+        <p class="font-bold text-slate-900 dark:text-slate-100 text-sm">Lucky Spin</p>
+        <p class="text-xs text-slate-500 mt-0.5">Up to 500 coins</p>
+        <p class="text-[10px] text-amber-600 font-bold mt-1" id="spin-left">1 free spin</p>
+      </button>
+      <button onclick="showScreen('scratch')" class="bg-green-50 dark:bg-green-900/20 hover:bg-green-100 border border-green-200 dark:border-green-800 rounded-2xl p-4 text-left transition-all active:scale-95">
+        <div class="w-10 h-10 bg-green-100 dark:bg-green-800/30 rounded-xl flex items-center justify-center mb-3">
+          <span class="material-symbols-outlined text-green-600 dark:text-green-400">credit_card</span>
+        </div>
+        <p class="font-bold text-slate-900 dark:text-slate-100 text-sm">Scratch Card</p>
+        <p class="text-xs text-slate-500 mt-0.5">Win up to 200 coins</p>
+        <p class="text-[10px] text-green-600 font-bold mt-1" id="scratch-left">3 cards left</p>
+      </button>
+      <button onclick="showScreen('offerwall')" class="bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 border border-purple-200 dark:border-purple-800 rounded-2xl p-4 text-left transition-all active:scale-95">
+        <div class="w-10 h-10 bg-purple-100 dark:bg-purple-800/30 rounded-xl flex items-center justify-center mb-3">
+          <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">storefront</span>
+        </div>
+        <p class="font-bold text-slate-900 dark:text-slate-100 text-sm">Offerwall</p>
+        <p class="text-xs text-slate-500 mt-0.5">Apps, surveys & more</p>
+        <p class="text-[10px] text-purple-600 font-bold mt-1">12 offers</p>
+      </button>
+    </div>
+  </div>
+
+  <!-- Daily Streak -->
+  <div class="mx-4 my-4 bg-slate-50 dark:bg-white/5 rounded-2xl p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-sm font-bold">Daily Login Streak</h3>
+      <span class="badge-pill bg-primary/20 text-amber-700 dark:text-amber-400">
+        <span class="material-symbols-outlined msf" style="font-size:12px">local_fire_department</span>
+        <span id="streak-count">0 days</span>
+      </span>
+    </div>
+    <div class="flex gap-1.5" id="streak-days"></div>
+  </div>
+
+  <div class="h-24"></div><!-- nav spacer -->
+
+  <!-- Bottom Nav -->
+  <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white dark:bg-background-dark border-t border-slate-100 dark:border-white/10 px-4 pb-5 pt-2 flex z-50" aria-label="Main navigation">
+    <a href="#" onclick="showScreen('home')" class="flex flex-1 flex-col items-center gap-1 nav-active" aria-current="page">
+      <span class="material-symbols-outlined ni">home</span>
+      <p class="text-[10px] font-bold">Home</p>
+    </a>
+    <a href="#" onclick="showScreen('earn')" class="flex flex-1 flex-col items-center gap-1 text-slate-400">
+      <span class="material-symbols-outlined ni">bolt</span>
+      <p class="text-[10px] font-medium">Earn</p>
+    </a>
+    <a href="#" onclick="showScreen('leaderboard')" class="flex flex-1 flex-col items-center gap-1 text-slate-400">
+      <span class="material-symbols-outlined ni">leaderboard</span>
+      <p class="text-[10px] font-medium">Ranks</p>
+    </a>
+    <a href="#" onclick="showScreen('refer')" class="flex flex-1 flex-col items-center gap-1 text-slate-400">
+      <span class="material-symbols-outlined ni">group_add</span>
+      <p class="text-[10px] font-medium">Refer</p>
+    </a>
+    <a href="#" onclick="showScreen('profile')" class="flex flex-1 flex-col items-center gap-1 text-slate-400">
+      <span class="material-symbols-outlined ni">person</span>
+      <p class="text-[10px] font-medium">Profile</p>
+    </a>
+  </nav>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: EARN (Ad History)
+══════════════════════════════════════ -->
+<div id="screen-earn" class="screen flex-col min-h-screen">
+  <header class="flex items-center px-4 py-5 gap-3">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-lg font-bold flex-1">Earn Coins</h1>
+  </header>
+  <!-- Conversion Info -->
+  <div class="mx-4 mb-4 bg-primary/10 border border-primary/20 rounded-xl p-4">
+    <p class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">Coin Conversion Rate</p>
+    <div class="flex items-center gap-4 text-sm">
+      <div class="text-center"><p class="text-xl font-extrabold text-primary">1</p><p class="text-xs text-slate-500">ad watched</p></div>
+      <span class="material-symbols-outlined text-slate-400">arrow_forward</span>
+      <div class="text-center"><p class="text-xl font-extrabold text-primary">10</p><p class="text-xs text-slate-500">coins</p></div>
+      <span class="material-symbols-outlined text-slate-400">arrow_forward</span>
+      <div class="text-center"><p class="text-xl font-extrabold text-primary">₹0.10</p><p class="text-xs text-slate-500">cash</p></div>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">1000 coins = ₹10 cash withdrawal</p>
+  </div>
+  <!-- Ad Options -->
+  <div class="px-4 space-y-3 mb-6">
+    <div class="border border-slate-100 dark:border-white/10 rounded-2xl p-4">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-500">play_circle</span>
+          </div>
+          <div>
+            <p class="font-bold text-sm">Rewarded Video</p>
+            <p class="text-xs text-slate-500">AdMob · 30 sec</p>
+          </div>
+        </div>
+        <span class="badge-pill bg-primary/20 text-amber-700">+10 coins</span>
+      </div>
+      <div class="flex items-center justify-between mt-3">
+        <p class="text-xs text-slate-500" id="earn-admob-left">20 / 20 remaining</p>
+        <button onclick="watchRewardedAd('admob')" class="bg-primary text-slate-900 text-xs font-bold px-4 py-2 rounded-lg">Watch Now</button>
+      </div>
+    </div>
+    <div class="border border-slate-100 dark:border-white/10 rounded-2xl p-4">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-orange-500">sports_esports</span>
+          </div>
+          <div>
+            <p class="font-bold text-sm">Unity Rewarded Ad</p>
+            <p class="text-xs text-slate-500">Unity Ads · 15 sec</p>
+          </div>
+        </div>
+        <span class="badge-pill bg-primary/20 text-amber-700">+10 coins</span>
+      </div>
+      <div class="flex items-center justify-between mt-3">
+        <p class="text-xs text-slate-500" id="earn-unity-left">10 / 10 remaining</p>
+        <button onclick="watchRewardedAd('unity')" class="bg-primary text-slate-900 text-xs font-bold px-4 py-2 rounded-lg">Watch Now</button>
+      </div>
+    </div>
+    <div class="border border-slate-100 dark:border-white/10 rounded-2xl p-4">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-green-500">campaign</span>
+          </div>
+          <div>
+            <p class="font-bold text-sm">AppLovin Rewarded</p>
+            <p class="text-xs text-slate-500">AppLovin MAX · 30 sec</p>
+          </div>
+        </div>
+        <span class="badge-pill bg-primary/20 text-amber-700">+10 coins</span>
+      </div>
+      <div class="flex items-center justify-between mt-3">
+        <p class="text-xs text-slate-500" id="earn-applovin-left">15 / 15 remaining</p>
+        <button onclick="watchRewardedAd('applovin')" class="bg-primary text-slate-900 text-xs font-bold px-4 py-2 rounded-lg">Watch Now</button>
+      </div>
+    </div>
+  </div>
+  <!-- Ad History -->
+  <div class="px-4">
+    <h3 class="text-sm font-bold mb-3">Today's History</h3>
+    <div id="ad-history" class="space-y-2">
+      <p class="text-sm text-slate-400 text-center py-4">No ads watched yet today</p>
+    </div>
+  </div>
+  <div class="h-8"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: SCRATCH CARD
+══════════════════════════════════════ -->
+<div id="screen-scratch" class="screen flex-col min-h-screen">
+  <header class="flex items-center px-4 py-5 gap-3">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-lg font-bold flex-1">Scratch Cards</h1>
+    <span class="badge-pill bg-primary/20 text-amber-700" id="scratch-count-badge">3 left</span>
+  </header>
+  <div class="flex flex-col items-center px-4 pt-4">
+    <p class="text-sm text-slate-500 mb-6 text-center">Scratch to reveal your prize! Win up to 200 coins.</p>
+    <div class="relative mb-6">
+      <canvas id="scratch-canvas" class="scratch-canvas" width="300" height="200"></canvas>
+      <div id="scratch-prize" class="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-primary/10 pointer-events-none opacity-0 transition-opacity">
+        <span class="material-symbols-outlined text-5xl text-primary msf">workspace_premium</span>
+        <p class="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2" id="scratch-prize-val">0</p>
+        <p class="text-sm text-slate-500">coins won!</p>
+      </div>
+    </div>
+    <button id="new-scratch-btn" onclick="newScratchCard()" class="bg-primary text-slate-900 font-bold px-8 py-3 rounded-xl hidden">Next Card</button>
+    <div class="mt-6 w-full space-y-2" id="scratch-history">
+      <h3 class="text-sm font-bold">Recent Scratches</h3>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: OFFERWALL
+══════════════════════════════════════ -->
+<div id="screen-offerwall" class="screen flex-col min-h-screen">
+  <header class="flex items-center px-4 py-5 gap-3">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-lg font-bold flex-1">Offerwall</h1>
+  </header>
+  <!-- Provider tabs -->
+  <div class="flex gap-2 px-4 mb-4">
+    <button onclick="switchOfferTab('ironsource')" id="ow-tab-ironsource" class="px-4 py-2 rounded-full bg-primary text-slate-900 text-xs font-bold">ironSource</button>
+    <button onclick="switchOfferTab('fyber')" id="ow-tab-fyber" class="px-4 py-2 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-xs font-bold">Fyber</button>
+  </div>
+  <div id="offer-list" class="px-4 space-y-3 pb-8"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: SPIN
+══════════════════════════════════════ -->
+<div id="screen-spin" class="screen flex-col min-h-screen">
+  <header class="flex items-center px-4 py-5 gap-3">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-lg font-bold flex-1">Lucky Spin</h1>
+  </header>
+  <div class="flex flex-col items-center px-4 pb-8">
+    <p class="text-sm text-slate-500 mb-6 text-center">Spin the wheel to win coins!</p>
+    <div class="relative" style="width:288px;height:288px;">
+      <div class="absolute top-[-14px] left-1/2 -translate-x-1/2 z-20" aria-hidden="true" style="width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid #ffc105"></div>
+      <canvas id="spin-canvas" width="288" height="288" style="border-radius:50%;border:6px solid #231e0f;" aria-label="Spin wheel"></canvas>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 size-12 rounded-full bg-white dark:bg-slate-900 border-4 border-primary flex items-center justify-center text-xl" aria-hidden="true" style="box-shadow:0 0 0 2px #231e0f">⭐</div>
+    </div>
+    <div class="mt-8 w-full max-w-xs space-y-4 flex flex-col items-center">
+      <div class="bg-primary/10 px-6 py-2 rounded-full border border-primary/20">
+        <p class="text-primary font-semibold text-sm" id="spin-avail-txt">1 Free Spin Available</p>
+      </div>
+      <button id="spin-btn" onclick="doSpin()" class="w-full bg-primary text-slate-900 font-bold py-4 rounded-xl shadow-lg shadow-primary/30 text-lg">SPIN NOW</button>
+      <div id="spin-result-area" aria-live="polite" class="min-h-10 flex items-center justify-center"></div>
+      <p class="text-xs text-slate-500">Next free spin resets daily at midnight</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: WITHDRAW
+══════════════════════════════════════ -->
+<div id="screen-withdraw" class="screen flex-col min-h-screen">
+  <header class="flex items-center px-4 py-5 gap-3 sticky top-0 bg-white dark:bg-background-dark z-10">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-xl font-bold">Withdraw Money</h1>
+  </header>
+  <section class="flex flex-col items-center py-6 px-4 bg-primary/10 mx-4 rounded-xl mb-6">
+    <span class="text-sm text-slate-600 dark:text-slate-400 mb-1">Available Balance</span>
+    <h2 class="text-4xl font-bold" id="wd-balance">₹0.00</h2>
+    <p class="text-xs text-slate-500 mt-1" id="wd-coins">0 coins</p>
+  </section>
+  <main class="flex-1 px-4 space-y-6">
+    <div>
+      <label for="wd-amount" class="block text-sm font-semibold mb-2">Withdrawal Amount</label>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-slate-400">₹</span>
+        <input id="wd-amount" type="number" min="10" step="1" placeholder="Min ₹10" oninput="validateWD()" class="w-full pl-10 pr-4 py-4 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-lg font-medium"/>
+      </div>
+      <p id="wd-err" class="text-red-500 text-xs mt-1 hidden"></p>
+      <p class="text-xs text-slate-500 mt-1 italic">Minimum ₹10 · 1000 coins = ₹10</p>
+    </div>
+    <div>
+      <label class="block text-sm font-semibold mb-3">Payment Method</label>
+      <div class="grid grid-cols-4 gap-3" role="radiogroup">
+        <label class="cursor-pointer group"><input checked class="peer hidden" name="pm" type="radio" value="paytm" onchange="updatePMPlaceholder(this)"/>
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-100 dark:border-zinc-800 peer-checked:border-primary peer-checked:bg-primary/10 transition-all">
+            <span class="material-symbols-outlined text-slate-600 peer-checked:text-primary" style="font-size:20px">account_balance_wallet</span>
+            <span class="text-[10px] font-bold text-slate-500">Paytm</span>
+          </div></label>
+        <label class="cursor-pointer group"><input class="peer hidden" name="pm" type="radio" value="phonepe" onchange="updatePMPlaceholder(this)"/>
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-100 dark:border-zinc-800 peer-checked:border-primary peer-checked:bg-primary/10 transition-all">
+            <span class="material-symbols-outlined text-slate-600" style="font-size:20px">send_to_mobile</span>
+            <span class="text-[10px] font-bold text-slate-500">PhonePe</span>
+          </div></label>
+        <label class="cursor-pointer group"><input class="peer hidden" name="pm" type="radio" value="gpay" onchange="updatePMPlaceholder(this)"/>
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-100 dark:border-zinc-800 peer-checked:border-primary peer-checked:bg-primary/10 transition-all">
+            <span class="material-symbols-outlined text-slate-600" style="font-size:20px">payments</span>
+            <span class="text-[10px] font-bold text-slate-500">G-Pay</span>
+          </div></label>
+        <label class="cursor-pointer group"><input class="peer hidden" name="pm" type="radio" value="upi" onchange="updatePMPlaceholder(this)"/>
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-100 dark:border-zinc-800 peer-checked:border-primary peer-checked:bg-primary/10 transition-all">
+            <span class="material-symbols-outlined text-slate-600" style="font-size:20px">qr_code_2</span>
+            <span class="text-[10px] font-bold text-slate-500">UPI</span>
+          </div></label>
+      </div>
+    </div>
+    <div>
+      <label for="pm-id" class="block text-sm font-semibold mb-2">Payment Details</label>
+      <input id="pm-id" type="text" placeholder="Enter Paytm mobile number" oninput="validateWD()" class="w-full px-4 py-4 rounded-xl border-2 border-slate-200 dark:border-zinc-700 dark:bg-zinc-800 outline-none focus:border-primary text-base font-medium"/>
+    </div>
+    <!-- Withdrawal history -->
+    <div>
+      <h3 class="text-sm font-bold mb-3">Withdrawal History</h3>
+      <div id="wd-history" class="space-y-2"></div>
+    </div>
+  </main>
+  <footer class="p-4 mt-4 border-t border-slate-100 dark:border-zinc-800">
+    <button id="wd-btn" disabled onclick="submitWD()" class="w-full bg-primary text-slate-900 font-bold py-4 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+      Request Withdrawal <span class="material-symbols-outlined">chevron_right</span>
+    </button>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: REFER
+══════════════════════════════════════ -->
+<div id="screen-refer" class="screen flex-col min-h-screen">
+  <header class="flex items-center px-4 py-5 gap-3">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-lg font-bold flex-1">Refer &amp; Earn</h1>
+  </header>
+  <div class="px-4 pb-8 space-y-6">
+    <div class="bg-primary/10 rounded-2xl p-5 text-center">
+      <p class="text-2xl font-extrabold mb-1">Earn 500 coins</p>
+      <p class="text-sm text-slate-500">for every friend who signs up and watches their first ad</p>
+    </div>
+    <div class="bg-slate-50 dark:bg-white/5 rounded-xl p-5">
+      <p class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Your Code</p>
+      <div class="flex items-center justify-between bg-white dark:bg-background-dark border-2 border-dashed border-primary/50 rounded-lg px-4 py-3">
+        <span class="text-2xl font-black tracking-widest" id="refer-code">BEE00001</span>
+        <button onclick="copyReferCode()" aria-label="Copy referral code" class="flex items-center gap-1 bg-primary text-slate-900 px-4 py-2 rounded-lg font-bold text-sm">
+          <span class="material-symbols-outlined text-sm">content_copy</span><span id="copy-lbl">Copy</span>
+        </button>
+      </div>
+      <p id="copy-ok" class="text-green-600 text-xs font-semibold mt-2 hidden fadein">✓ Copied!</p>
+    </div>
+    <button onclick="shareReferLink()" class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-4 rounded-xl flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined">share</span> Share Link
+    </button>
+    <div>
+      <h3 class="text-sm font-bold mb-3">Your Referrals (<span id="ref-count">0</span>)</h3>
+      <div id="ref-list" class="space-y-2">
+        <p class="text-sm text-slate-400 text-center py-4">No referrals yet. Start sharing!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: LEADERBOARD
+══════════════════════════════════════ -->
+<div id="screen-leaderboard" class="screen flex-col min-h-screen">
+  <header class="flex items-center px-4 py-5 gap-3">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-lg font-bold flex-1">Leaderboard</h1>
+  </header>
+  <div class="flex gap-2 px-4 mb-4" role="tablist">
+    <button role="tab" aria-selected="true" id="lb-tab-global" onclick="switchLBTab('global')" class="flex-1 py-2 rounded-full bg-primary text-slate-900 text-sm font-bold">Global</button>
+    <button role="tab" aria-selected="false" id="lb-tab-friends" onclick="switchLBTab('friends')" class="flex-1 py-2 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-bold">Friends</button>
+    <button role="tab" aria-selected="false" id="lb-tab-weekly" onclick="switchLBTab('weekly')" class="flex-1 py-2 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-bold">Weekly</button>
+  </div>
+  <div id="lb-list" class="px-4 space-y-2 pb-8"></div>
+  <!-- My rank sticky -->
+  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-4 pb-4 bg-white dark:bg-background-dark border-t border-slate-100 dark:border-white/10 pt-3">
+    <div class="bg-primary rounded-xl p-3 flex items-center gap-3">
+      <div class="bg-slate-900 text-primary w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm">#42</div>
+      <div class="flex-1"><p class="font-bold text-slate-900 text-sm" id="lb-myname">You</p><p class="text-xs text-slate-900/60" id="lb-mycoins">0 coins</p></div>
+      <p class="text-xs font-bold text-slate-900/70">+150 to #41</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: PROFILE
+══════════════════════════════════════ -->
+<div id="screen-profile" class="screen flex-col min-h-screen">
+  <header class="flex items-center justify-between px-4 py-5">
+    <button onclick="showScreen('home')" class="p-2 rounded-full hover:bg-primary/10" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 class="text-lg font-bold">Profile</h1>
+    <button class="p-2 rounded-full hover:bg-primary/10" aria-label="Settings"><span class="material-symbols-outlined">settings</span></button>
+  </header>
+  <div class="flex flex-col items-center py-4 px-4">
+    <div class="w-24 h-24 rounded-full border-4 border-primary bg-primary/20 flex items-center justify-center mb-3 shadow-lg">
+      <span class="text-3xl font-extrabold text-primary" id="profile-initials">JD</span>
+    </div>
+    <h2 class="text-xl font-bold" id="profile-name">John Doe</h2>
+    <p class="text-slate-500 text-sm" id="profile-email">user@email.com</p>
+    <div class="flex gap-3 mt-3">
+      <span class="badge-pill bg-primary/20 text-amber-700">
+        <span class="material-symbols-outlined msf" style="font-size:12px">verified</span> Verified
+      </span>
+      <span class="badge-pill bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+        <span class="material-symbols-outlined msf" style="font-size:12px">security</span> <span id="device-status">Device OK</span>
+      </span>
+    </div>
+  </div>
+  <!-- Earnings card -->
+  <div class="mx-4 mb-4 bg-primary rounded-2xl p-5 relative overflow-hidden">
+    <p class="text-slate-900/60 text-xs font-bold uppercase tracking-widest mb-1">Total Earned</p>
+    <p class="text-3xl font-extrabold text-slate-900 mb-1" id="profile-total">₹0.00</p>
+    <p class="text-slate-900/60 text-sm" id="profile-coins-total">0 coins total</p>
+  </div>
+  <!-- Menu -->
+  <div class="px-4 space-y-2 pb-8">
+    <a href="#" onclick="showScreen('earn')" class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 group transition-all">
+      <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-primary">play_circle</span></div>
+      <span class="flex-1 font-semibold text-sm">Watch Ads</span>
+      <span class="material-symbols-outlined text-slate-300">chevron_right</span>
+    </a>
+    <a href="#" onclick="showScreen('withdraw')" class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 group transition-all">
+      <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-primary">account_balance_wallet</span></div>
+      <span class="flex-1 font-semibold text-sm">Withdraw</span>
+      <span class="material-symbols-outlined text-slate-300">chevron_right</span>
+    </a>
+    <a href="#" onclick="showScreen('refer')" class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 group transition-all">
+      <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-primary">group</span></div>
+      <span class="flex-1 font-semibold text-sm">My Referrals</span>
+      <span class="material-symbols-outlined text-slate-300">chevron_right</span>
+    </a>
+    <div class="pt-2">
+      <button onclick="doLogout()" class="w-full flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 rounded-xl border border-red-200/50 text-red-600 font-bold transition-all">
+        <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-red-500">logout</span></div>
+        <span class="flex-1 text-left text-sm">Logout</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end #app -->
+
+<!-- ══════════════════════════════════════
+     AD OVERLAY (simulated rewarded ad)
+══════════════════════════════════════ -->
+<div id="ad-overlay" class="ad-overlay hidden">
+  <div class="text-white text-center px-8">
+    <div class="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-6" id="ad-network-icon">
+      <span class="material-symbols-outlined text-white text-4xl">play_circle</span>
+    </div>
+    <p class="text-xs text-white/50 uppercase tracking-widest mb-2" id="ad-network-label">AdMob</p>
+    <p class="text-lg font-bold mb-6">Watching ad...</p>
+    <div class="w-48 h-2 bg-white/20 rounded-full mx-auto mb-4">
+      <div id="ad-progress-bar" class="h-full bg-primary rounded-full transition-all" style="width:0%"></div>
+    </div>
+    <p id="ad-timer" class="text-4xl font-extrabold text-primary mb-6">30</p>
+    <button id="ad-skip-btn" onclick="skipAd()" class="bg-white/10 text-white px-6 py-2 rounded-lg text-sm hidden">Skip Ad</button>
+    <p class="text-xs text-white/40 mt-4">Reward: +10 coins</p>
+  </div>
+  <button id="ad-close-btn" onclick="closeAd()" class="absolute top-6 right-6 text-white/60 hover:text-white hidden" aria-label="Close ad">
+    <span class="material-symbols-outlined">close</span>
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════
+     COIN EARNED TOAST
+══════════════════════════════════════ -->
+<div id="coin-toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 hidden">
+  <div class="bg-slate-900 text-primary px-6 py-3 rounded-full flex items-center gap-2 shadow-2xl pop">
+    <span class="material-symbols-outlined msf text-primary">monetization_on</span>
+    <span id="toast-msg" class="font-bold text-sm">+10 coins</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     NOTIFICATION PANEL
+══════════════════════════════════════ -->
+<div id="notif-panel" class="modal-bg hidden" onclick="closeNotifPanel(event)">
+  <div class="modal-card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-lg">Notifications</h3>
+      <button onclick="closeNotifPanel()" class="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/10"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div id="notif-list" class="space-y-3 max-h-80 overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     INTERSTITIAL AD MODAL
+══════════════════════════════════════ -->
+<div id="interstitial" class="modal-bg hidden">
+  <div class="bg-slate-900 text-white rounded-2xl mx-4 w-full max-w-sm overflow-hidden slideup">
+    <div class="p-6 text-center">
+      <p class="text-[10px] text-white/40 uppercase tracking-widest mb-1">Advertisement</p>
+      <div class="w-16 h-16 bg-white/10 rounded-xl flex items-center justify-center mx-auto my-4">
+        <span class="material-symbols-outlined text-primary text-4xl">campaign</span>
+      </div>
+      <p class="font-bold text-lg mb-1">Special Offer!</p>
+      <p class="text-sm text-white/60 mb-4">Tap to explore exclusive deals & earn bonus coins</p>
+      <button onclick="closeInterstitial(true)" class="w-full bg-primary text-slate-900 font-bold py-3 rounded-xl mb-2">Explore Offer (+5 coins)</button>
+      <button id="interstitial-close" onclick="closeInterstitial(false)" class="w-full text-white/50 text-sm py-2" disabled>Close in <span id="interstitial-timer">5</span>s</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE (simulates Firebase Firestore)
+// ═══════════════════════════════════════════
+const DB = {
+  users: {},
+  withdrawals: [],
+  adLimits: { admob:20, unity:10, applovin:15 },
+  coinPerAd: 10,
+  coinsPerRupee: 100, // 1000 coins = ₹10 → 100 coins = ₹1
+};
+
+let STATE = {
+  uid: null,
+  name: 'Guest',
+  email: '',
+  coins: 0,
+  totalCoins: 0,
+  adsToday: { admob:0, unity:0, applovin:0 },
+  adHistory: [],
+  streak: 0,
+  lastLogin: null,
+  referralCode: 'BEE00001',
+  referrals: [],
+  scratchCardsLeft: 3,
+  spinLeft: 1,
+  withdrawals: [],
+  vpnDetected: false,
+  deviceId: null,
+  notifications: [],
+};
+
+// ─── Device fingerprint (anti-cheat) ─────────────────────────────
+function getDeviceId() {
+  let id = localStorage.getItem('hb_device_id');
+  if (!id) {
+    id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('hb_device_id', id);
+  }
+  return id;
+}
+
+// ─── VPN/Proxy detection (heuristic) ─────────────────────────────
+async function detectVPN() {
+  // Real app would use an IP intelligence API. Here we simulate.
+  return false;
+}
+
+// ─── Auth persistence ─────────────────────────────────────────────
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('hb_state') || 'null');
+    if (saved) Object.assign(STATE, saved);
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('hb_state', JSON.stringify(STATE));
+}
+
+// ═══════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════
+function showAuthTab(tab) {
+  document.getElementById('auth-login').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('auth-register').classList.toggle('hidden', tab !== 'register');
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  if (!email || !pass) { err.textContent = 'Please fill all fields.'; err.classList.remove('hidden'); return; }
+  // Simulate Firebase Auth check
+  const key = 'hb_user_' + btoa(email);
+  const user = JSON.parse(localStorage.getItem(key) || 'null');
+  if (!user || user.pass !== btoa(pass)) {
+    err.textContent = 'Invalid email or password.'; err.classList.remove('hidden'); return;
+  }
+  err.classList.add('hidden');
+  STATE = {...STATE, ...user.state, uid: key, email, name: user.name};
+  postLogin();
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const refCode = document.getElementById('reg-ref').value.trim().toUpperCase();
+  const err = document.getElementById('reg-err');
+  if (!name || !email || pass.length < 6) { err.textContent = 'All fields required. Password min 6 chars.'; err.classList.remove('hidden'); return; }
+  const key = 'hb_user_' + btoa(email);
+  if (localStorage.getItem(key)) { err.textContent = 'Email already registered.'; err.classList.remove('hidden'); return; }
+  // Anti-cheat: check if device already has account
+  const devId = getDeviceId();
+  const devAccounts = JSON.parse(localStorage.getItem('hb_dev_accounts') || '[]');
+  if (devAccounts.filter(d=>d===devId).length >= 3) {
+    err.textContent = 'Too many accounts on this device.'; err.classList.remove('hidden'); return;
+  }
+  devAccounts.push(devId);
+  localStorage.setItem('hb_dev_accounts', JSON.stringify(devAccounts));
+
+  const refCode2 = 'BEE' + Math.random().toString(36).slice(2,7).toUpperCase();
+  const newState = { coins:0, totalCoins:0, adsToday:{admob:0,unity:0,applovin:0}, adHistory:[], streak:1,
+    lastLogin: new Date().toDateString(), referralCode: refCode2, referrals:[], scratchCardsLeft:3, spinLeft:1,
+    withdrawals:[], deviceId: devId, notifications:[
+      {id:1, title:'Welcome to HoneyBee! 🐝', body:'Watch your first ad and earn 10 coins.', time:'just now', read:false}
+    ]};
+  localStorage.setItem(key, JSON.stringify({name, pass: btoa(pass), state: newState}));
+  // Handle referral reward
+  if (refCode) addRefReward(refCode);
+  err.classList.add('hidden');
+  STATE = {...STATE, ...newState, uid:key, email, name};
+  postLogin();
+}
+
+function doGuestLogin() {
+  STATE.name = 'Guest';
+  STATE.email = 'guest@honeybee.app';
+  STATE.uid = 'guest';
+  STATE.referralCode = 'BEE_GUEST';
+  STATE.notifications = [{id:1,title:'Welcome Guest! 🐝',body:'Create an account to save your progress.',time:'just now',read:false}];
+  postLogin();
+}
+
+function addRefReward(code) {
+  // Find user with this referral code and give them 500 coins
+  // In real app this would be a Cloud Function
+  for (let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('hb_user_')) {
+      try {
+        const u = JSON.parse(localStorage.getItem(k));
+        if (u && u.state && u.state.referralCode === code) {
+          u.state.coins = (u.state.coins||0) + 500;
+          u.state.totalCoins = (u.state.totalCoins||0) + 500;
+          u.state.referrals = [...(u.state.referrals||[]), STATE.name||'New User'];
+          u.state.notifications = [...(u.state.notifications||[]),
+            {id:Date.now(),title:'Referral Bonus! 🎉',body:'A friend used your code. +500 coins credited!',time:'just now',read:false}];
+          localStorage.setItem(k, JSON.stringify(u));
+        }
+      } catch(e){}
+    }
+  }
+}
+
+function postLogin() {
+  STATE.deviceId = getDeviceId();
+  updateStreak();
+  saveState();
+  detectVPN().then(v => {
+    STATE.vpnDetected = v;
+    document.getElementById('vpn-warning').classList.toggle('hidden', !v);
+  });
+  showScreen('home');
+  updateAllUI();
+  triggerInterstitial();
+  scheduleNotifications();
+  addNotif({title:'Daily bonus available! 🍯',body:'Log in daily to build your streak and earn bonus coins.',time:'now'});
+}
+
+function doLogout() {
+  if (STATE.uid && STATE.uid !== 'guest') {
+    const u = JSON.parse(localStorage.getItem(STATE.uid)||'{}');
+    u.state = {...STATE}; delete u.state.uid;
+    localStorage.setItem(STATE.uid, JSON.stringify(u));
+  }
+  STATE = { uid:null, name:'Guest', email:'', coins:0, totalCoins:0,
+    adsToday:{admob:0,unity:0,applovin:0}, adHistory:[], streak:0, lastLogin:null,
+    referralCode:'BEE00001', referrals:[], scratchCardsLeft:3, spinLeft:1,
+    withdrawals:[], vpnDetected:false, deviceId:null, notifications:[] };
+  showScreen('auth');
+}
+
+// ═══════════════════════════════════════════
+//  STREAK
+// ═══════════════════════════════════════════
+function updateStreak() {
+  const today = new Date().toDateString();
+  if (STATE.lastLogin === today) return;
+  const yesterday = new Date(Date.now()-86400000).toDateString();
+  if (STATE.lastLogin === yesterday) STATE.streak = (STATE.streak||0)+1;
+  else if (STATE.lastLogin !== today) STATE.streak = 1;
+  STATE.lastLogin = today;
+  // Streak bonus
+  if (STATE.streak > 1) {
+    const bonus = Math.min(STATE.streak * 5, 50);
+    addCoins(bonus, 'streak');
+    addNotif({title:'🔥 '+STATE.streak+'-day streak!', body:'Bonus: +'+bonus+' coins for logging in consecutively!',time:'now'});
+  }
+}
+
+// ═══════════════════════════════════════════
+//  ADS
+// ═══════════════════════════════════════════
+let adCallback = null, adTimer = null;
+
+function watchRewardedAd(network='admob') {
+  if (STATE.vpnDetected) { alert('Disable VPN to earn coins.'); return; }
+  const limit = DB.adLimits[network];
+  if (STATE.adsToday[network] >= limit) { showToast('Daily limit reached for '+network+'!', true); return; }
+  const overlay = document.getElementById('ad-overlay');
+  const networkLabels = {admob:'Google AdMob', unity:'Unity Ads', applovin:'AppLovin MAX'};
+  const durations = {admob:30, unity:15, applovin:30};
+  const dur = durations[network];
+  document.getElementById('ad-network-label').textContent = networkLabels[network];
+  document.getElementById('ad-timer').textContent = dur;
+  document.getElementById('ad-progress-bar').style.width = '0%';
+  document.getElementById('ad-skip-btn').classList.add('hidden');
+  document.getElementById('ad-close-btn').classList.add('hidden');
+  overlay.classList.remove('hidden');
+  let elapsed = 0;
+  adCallback = network;
+  adTimer = setInterval(() => {
+    elapsed++;
+    const pct = (elapsed/dur)*100;
+    document.getElementById('ad-progress-bar').style.width = pct+'%';
+    document.getElementById('ad-timer').textContent = dur-elapsed;
+    if (elapsed >= 5) document.getElementById('ad-skip-btn').classList.remove('hidden');
+    if (elapsed >= dur) {
+      clearInterval(adTimer);
+      completeAd(network);
+    }
+  }, 1000);
+}
+
+function skipAd() {
+  clearInterval(adTimer);
+  document.getElementById('ad-overlay').classList.add('hidden');
+  adCallback = null;
+  showToast('Watch the full ad to earn coins!', true);
+}
+
+function closeAd() {
+  clearInterval(adTimer);
+  document.getElementById('ad-overlay').classList.add('hidden');
+}
+
+function completeAd(network) {
+  document.getElementById('ad-overlay').classList.add('hidden');
+  STATE.adsToday[network]++;
+  const earned = DB.coinPerAd;
+  addCoins(earned, 'ad');
+  STATE.adHistory.unshift({network, coins:earned, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});
+  if (STATE.adHistory.length > 20) STATE.adHistory.pop();
+  updateAdUI();
+  addNotif({title:'Ad reward credited!',body:'+'+earned+' coins from '+network+' ad.',time:'now'});
+  saveState();
+  setTimeout(triggerInterstitial, 2000);
+}
+
+function triggerBannerAd() {
+  addCoins(5,'banner');
+  showToast('+5 coins from banner ad!');
+}
+
+let interstitialShown = 0;
+function triggerInterstitial() {
+  interstitialShown++;
+  if (interstitialShown % 3 !== 0) return;
+  const el = document.getElementById('interstitial');
+  el.classList.remove('hidden');
+  let t = 5;
+  const btn = document.getElementById('interstitial-close');
+  btn.disabled = true;
+  const iv = setInterval(() => {
+    t--;
+    document.getElementById('interstitial-timer').textContent = t;
+    if (t <= 0) { clearInterval(iv); btn.disabled = false; btn.textContent = 'Close'; }
+  }, 1000);
+}
+
+function closeInterstitial(clicked) {
+  document.getElementById('interstitial').classList.add('hidden');
+  if (clicked) addCoins(5,'interstitial');
+}
+
+// ═══════════════════════════════════════════
+//  COINS
+// ═══════════════════════════════════════════
+function addCoins(amount, source) {
+  STATE.coins += amount;
+  STATE.totalCoins += amount;
+  showToast('+'+amount+' coins'+(source?' ('+source+')':''));
+  updateCoinUI();
+  saveState();
+}
+
+function spendCoins(amount) {
+  if (STATE.coins < amount) return false;
+  STATE.coins -= amount;
+  updateCoinUI();
+  saveState();
+  return true;
+}
+
+function coinsToRupees(coins) { return (coins / DB.coinsPerRupee).toFixed(2); }
+
+// ═══════════════════════════════════════════
+//  WITHDRAW
+// ═══════════════════════════════════════════
+const pmPlaceholders = {paytm:'Paytm mobile number', phonepe:'PhonePe mobile number', gpay:'Google Pay UPI ID', upi:'UPI ID (e.g. name@upi)'};
+
+function updatePMPlaceholder(r) { document.getElementById('pm-id').placeholder = 'Enter '+pmPlaceholders[r.value]; validateWD(); }
+
+function validateWD() {
+  const rupees = parseFloat(coinsToRupees(STATE.coins));
+  const amt = parseFloat(document.getElementById('wd-amount').value);
+  const pid = document.getElementById('pm-id').value.trim();
+  const err = document.getElementById('wd-err');
+  const btn = document.getElementById('wd-btn');
+  let ok = false;
+  if (!isNaN(amt)) {
+    if (amt < 10) { err.textContent='Minimum withdrawal is ₹10 (1000 coins).'; err.classList.remove('hidden'); }
+    else if (amt > rupees) { err.textContent='Insufficient balance. Max: ₹'+rupees; err.classList.remove('hidden'); }
+    else { err.classList.add('hidden'); ok = true; }
+  } else { err.classList.add('hidden'); }
+  btn.disabled = !(ok && pid.length > 3);
+}
+
+function submitWD() {
+  const amt = parseFloat(document.getElementById('wd-amount').value);
+  const coinsNeeded = Math.ceil(amt * DB.coinsPerRupee);
+  if (!spendCoins(coinsNeeded)) { showToast('Insufficient coins!', true); return; }
+  const req = { id: 'WD'+Date.now(), amount: amt, coins: coinsNeeded, method: document.querySelector('[name=pm]:checked').value,
+    pid: document.getElementById('pm-id').value.trim(), status:'pending', time: new Date().toLocaleString() };
+  STATE.withdrawals.unshift(req);
+  // Simulate cloud function validation
+  setTimeout(()=>{
+    const i = STATE.withdrawals.findIndex(w=>w.id===req.id);
+    if (i>=0) { STATE.withdrawals[i].status='processing'; updateWDHistory(); saveState(); }
+    addNotif({title:'Withdrawal submitted!',body:'₹'+amt+' request is being processed.',time:'now'});
+  }, 1500);
+  saveState();
+  updateWDUI();
+  document.getElementById('wd-amount').value='';
+  document.getElementById('pm-id').value='';
+  validateWD();
+  showToast('Withdrawal request submitted!');
+}
+
+// ═══════════════════════════════════════════
+//  SCRATCH CARD
+// ═══════════════════════════════════════════
+let scratchCtx, scratchPrize, scratchRevealed=false, scratchHistoryArr=[];
+const SCRATCH_PRIZES = [0,0,10,10,20,30,50,100,200];
+
+function initScratchCard() {
+  const canvas = document.getElementById('scratch-canvas');
+  if (!canvas) return;
+  scratchCtx = canvas.getContext('2d');
+  scratchPrize = SCRATCH_PRIZES[Math.floor(Math.random()*SCRATCH_PRIZES.length)];
+  document.getElementById('scratch-prize-val').textContent = scratchPrize;
+  scratchRevealed = false;
+  document.getElementById('scratch-prize').style.opacity='0';
+  document.getElementById('new-scratch-btn').classList.add('hidden');
+  // Draw scratch surface
+  scratchCtx.clearRect(0,0,300,200);
+  scratchCtx.fillStyle='#ffc105';
+  scratchCtx.beginPath();
+  roundRect(scratchCtx,0,0,300,200,16);
+  scratchCtx.fill();
+  scratchCtx.fillStyle='#412402';
+  scratchCtx.font='bold 18px "Be Vietnam Pro", sans-serif';
+  scratchCtx.textAlign='center';
+  scratchCtx.fillText('🐝 Scratch to reveal!',150,95);
+  scratchCtx.fillText('Win up to 200 coins',150,125);
+  // Scratch events
+  canvas.onmousedown = canvas.ontouchstart = (e)=>{ canvas.isDrawing=true; scratch(e); };
+  canvas.onmousemove = canvas.ontouchmove = (e)=>{ if(canvas.isDrawing) scratch(e); };
+  canvas.onmouseup = canvas.ontouchend = ()=>{ canvas.isDrawing=false; checkReveal(); };
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function scratch(e) {
+  e.preventDefault();
+  const canvas = document.getElementById('scratch-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+  const x = ((e.touches?e.touches[0].clientX:e.clientX)-rect.left)*sx;
+  const y = ((e.touches?e.touches[0].clientY:e.clientY)-rect.top)*sy;
+  scratchCtx.globalCompositeOperation='destination-out';
+  scratchCtx.beginPath();
+  scratchCtx.arc(x,y,22,0,Math.PI*2);
+  scratchCtx.fill();
+}
+
+function checkReveal() {
+  if (scratchRevealed) return;
+  const d = scratchCtx.getImageData(0,0,300,200).data;
+  let cleared=0;
+  for(let i=3;i<d.length;i+=4) if(d[i]===0) cleared++;
+  if(cleared/(300*200) > 0.55) revealScratch();
+}
+
+function revealScratch() {
+  scratchRevealed = true;
+  document.getElementById('scratch-prize').style.opacity='1';
+  if (STATE.scratchCardsLeft > 0) {
+    STATE.scratchCardsLeft--;
+    if (scratchPrize > 0) addCoins(scratchPrize, 'scratch');
+    scratchHistoryArr.unshift({prize:scratchPrize, time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+    document.getElementById('new-scratch-btn').classList.toggle('hidden', STATE.scratchCardsLeft<=0);
+    document.getElementById('scratch-count-badge').textContent = STATE.scratchCardsLeft+' left';
+    updateScratchHistory();
+    saveState();
+  }
+}
+
+function newScratchCard() { if(STATE.scratchCardsLeft>0) initScratchCard(); }
+
+function updateScratchHistory() {
+  const el = document.getElementById('scratch-history');
+  const html = scratchHistoryArr.slice(0,5).map(h=>
+    `<div class="flex items-center justify-between py-2 border-b border-slate-100 dark:border-white/5">
+      <span class="text-sm">${h.time}</span>
+      <span class="font-bold text-sm ${h.prize>0?'text-primary':'text-slate-400'}">${h.prize>0?'+'+h.prize+' coins':'No prize'}</span>
+    </div>`).join('');
+  el.innerHTML = '<h3 class="text-sm font-bold mb-2">Recent Scratches</h3>'+(html||'<p class="text-sm text-slate-400">No scratches yet</p>');
+}
+
+// ═══════════════════════════════════════════
+//  SPIN WHEEL
+// ═══════════════════════════════════════════
+const SEGMENTS=[
+  {label:'500 Coins',coins:500,bg:'#ffc105',fg:'#412402'},
+  {label:'Try Again',coins:0,bg:'#231e0f',fg:'#FAC775'},
+  {label:'100 Coins',coins:100,bg:'#ffc105',fg:'#412402'},
+  {label:'Try Again',coins:0,bg:'#231e0f',fg:'#FAC775'},
+  {label:'50 Coins',coins:50,bg:'#ffc105',fg:'#412402'},
+  {label:'Try Again',coins:0,bg:'#231e0f',fg:'#FAC775'},
+  {label:'10 Coins',coins:10,bg:'#ffc105',fg:'#412402'},
+];
+let wheelAngle=0, wheelSpinning=false, wheelInited=false;
+
+function initWheel() {
+  if(wheelInited) return; wheelInited=true; drawWheel(0);
+}
+
+function drawWheel(angle) {
+  const canvas=document.getElementById('spin-canvas');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d'), n=SEGMENTS.length, arc=(2*Math.PI)/n, cx=144,cy=144,r=138;
+  ctx.clearRect(0,0,288,288);
+  SEGMENTS.forEach((seg,i)=>{
+    const s=angle+i*arc,end=s+arc;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,s,end);ctx.closePath();
+    ctx.fillStyle=seg.bg;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(s+arc/2);ctx.textAlign='right';
+    ctx.fillStyle=seg.fg;ctx.font='bold 13px "Be Vietnam Pro",sans-serif';ctx.fillText(seg.label,r-12,5);ctx.restore();
+  });
+}
+
+function doSpin() {
+  if(wheelSpinning||STATE.spinLeft<=0){
+    if(STATE.spinLeft<=0) showToast('No spins left today!',true); return;
+  }
+  wheelSpinning=true;
+  document.getElementById('spin-btn').disabled=true;
+  document.getElementById('spin-result-area').innerHTML='';
+  const n=SEGMENTS.length, arc=(2*Math.PI)/n;
+  const winIdx=Math.floor(Math.random()*n);
+  const target=(5+Math.floor(Math.random()*3))*2*Math.PI+(2*Math.PI-winIdx*arc-arc/2)-Math.PI/2;
+  const dur=4200, startAngle=wheelAngle, start=performance.now();
+  function easeOut(t){return 1-Math.pow(1-t,3);}
+  function frame(now){
+    const t=Math.min((now-start)/dur,1);
+    drawWheel(startAngle+target*easeOut(t));
+    if(t<1){requestAnimationFrame(frame);}
+    else{
+      wheelAngle=(startAngle+target)%(2*Math.PI);
+      wheelSpinning=false;
+      STATE.spinLeft--;
+      const seg=SEGMENTS[winIdx];
+      if(seg.coins>0) addCoins(seg.coins,'spin');
+      document.getElementById('spin-avail-txt').textContent=STATE.spinLeft+' spin'+(STATE.spinLeft!==1?'s':'')+' left';
+      document.getElementById('spin-btn').disabled=STATE.spinLeft<=0;
+      document.getElementById('spin-left').textContent=STATE.spinLeft+' free spin'+(STATE.spinLeft!==1?'s':'');
+      const res=document.getElementById('spin-result-area');
+      res.innerHTML=seg.coins>0
+        ?`<div class="pop px-5 py-2.5 rounded-full bg-primary text-slate-900 text-sm font-bold">🎉 You won ${seg.coins} coins!</div>`
+        :`<div class="pop px-5 py-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm">Better luck next time!</div>`;
+      saveState();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// ═══════════════════════════════════════════
+//  OFFERWALL
+// ═══════════════════════════════════════════
+const OFFERS = {
+  ironsource:[
+    {id:1,title:'Install Candy Crush',desc:'Install and reach level 10',coins:500,icon:'sports_esports',status:'available'},
+    {id:2,title:'Complete Survey',desc:'5-minute consumer survey',coins:150,icon:'quiz',status:'available'},
+    {id:3,title:'Try NewsBreak',desc:'Install and read 3 articles',coins:200,icon:'newspaper',status:'available'},
+    {id:4,title:'Sign up on Groww',desc:'Create investment account',coins:1000,icon:'trending_up',status:'available'},
+    {id:5,title:'Watch 5 Videos',desc:'Complete playlist on TikTok',coins:100,icon:'play_circle',status:'available'},
+  ],
+  fyber:[
+    {id:6,title:'Uber Eats Order',desc:'Place your first food order',coins:800,icon:'delivery_dining',status:'available'},
+    {id:7,title:'Play Roblox',desc:'Reach level 5 in any game',coins:300,icon:'gamepad',status:'available'},
+    {id:8,title:'Quick Survey',desc:'3-minute opinion survey',coins:80,icon:'assignment',status:'available'},
+    {id:9,title:'Install Swiggy',desc:'Install and open app',coins:120,icon:'local_dining',status:'available'},
+  ]
+};
+let currentOfferTab='ironsource';
+const completedOffers = new Set(JSON.parse(localStorage.getItem('hb_completed_offers')||'[]'));
+
+function switchOfferTab(tab) {
+  currentOfferTab=tab;
+  ['ironsource','fyber'].forEach(t=>{
+    const btn=document.getElementById('ow-tab-'+t);
+    btn.className=t===tab?'px-4 py-2 rounded-full bg-primary text-slate-900 text-xs font-bold':'px-4 py-2 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-xs font-bold';
+  });
+  renderOffers();
+}
+
+function renderOffers() {
+  const list=document.getElementById('offer-list');
+  const offers=OFFERS[currentOfferTab]||[];
+  list.innerHTML=offers.map(o=>{
+    const done=completedOffers.has(o.id);
+    return`<div class="border border-slate-100 dark:border-white/10 rounded-2xl p-4 ${done?'opacity-60':''}">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-primary">${o.icon}</span>
+        </div>
+        <div class="flex-1">
+          <p class="font-bold text-sm">${o.title}</p>
+          <p class="text-xs text-slate-500">${o.desc}</p>
+        </div>
+        <span class="badge-pill bg-primary/20 text-amber-700 flex-shrink-0">+${o.coins}</span>
+      </div>
+      <div class="mt-3 flex justify-end">
+        ${done
+          ?'<span class="badge-pill bg-green-100 dark:bg-green-900/30 text-green-700">✓ Completed</span>'
+          :`<button onclick="startOffer(${o.id},${o.coins},'${o.title}')" class="bg-primary text-slate-900 text-xs font-bold px-4 py-2 rounded-lg">Start</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function startOffer(id, coins, title) {
+  if(completedOffers.has(id)) return;
+  // Simulate offer completion after delay
+  showToast('Opening offer...');
+  setTimeout(()=>{
+    completedOffers.add(id);
+    localStorage.setItem('hb_completed_offers', JSON.stringify([...completedOffers]));
+    addCoins(coins,'offerwall');
+    addNotif({title:'Offer completed! 🎯',body:title+' — +'+coins+' coins credited!',time:'now'});
+    renderOffers();
+  }, 2000);
+}
+
+// ═══════════════════════════════════════════
+//  LEADERBOARD
+// ═══════════════════════════════════════════
+const LB_DATA = {
+  global:[
+    {rank:1,name:'Alex Bee',coins:5250,initials:'AB'},
+    {rank:2,name:'Bee-atrice',coins:4820,initials:'BE'},
+    {rank:3,name:'HoneyHustle',coins:3910,initials:'HH'},
+    {rank:4,name:'BuzzingSam',coins:2840,initials:'BS'},
+    {rank:5,name:'QueenBee99',coins:2710,initials:'QB'},
+    {rank:6,name:'WorkerDrone',coins:2650,initials:'WD'},
+    {rank:7,name:'FloralFanatic',coins:2400,initials:'FF'},
+  ],
+  friends:[
+    {rank:1,name:'PriyaB',coins:1980,initials:'PB'},
+    {rank:2,name:'Rohan_K',coins:1540,initials:'RK'},
+  ],
+  weekly:[
+    {rank:1,name:'HoneyRush',coins:890,initials:'HR'},
+    {rank:2,name:'BeeZapper',coins:750,initials:'BZ'},
+    {rank:3,name:'PollenKing',coins:430,initials:'PK'},
+  ]
+};
+
+function switchLBTab(tab) {
+  ['global','friends','weekly'].forEach(t=>{
+    const btn=document.getElementById('lb-tab-'+t);
+    btn.className=t===tab?'flex-1 py-2 rounded-full bg-primary text-slate-900 text-sm font-bold':'flex-1 py-2 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-bold';
+    btn.setAttribute('aria-selected',t===tab?'true':'false');
+  });
+  const list=document.getElementById('lb-list');
+  const rows=LB_DATA[tab]||[];
+  // Inject user into list if they have coins
+  const userRow={rank:'?', name:'You ('+STATE.name+')', coins:STATE.coins, initials:(STATE.name||'U').slice(0,2).toUpperCase(), isMe:true};
+  const allRows=[...rows, userRow].sort((a,b)=>(b.coins||0)-(a.coins||0)).map((r,i)=>({...r,rank:i+1}));
+  const medals=['🥇','🥈','🥉'];
+  list.innerHTML=allRows.map(r=>`
+    <div class="flex items-center gap-3 p-3 ${r.isMe?'bg-primary/10 border border-primary/20':'bg-slate-50 dark:bg-white/5'} rounded-xl">
+      <span class="text-sm font-bold w-7 text-center ${r.rank<=3?'text-lg':'text-slate-400'}">${r.rank<=3?medals[r.rank-1]:r.rank}</span>
+      <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">${r.initials}</div>
+      <div class="flex-1"><p class="text-sm font-bold ${r.isMe?'text-primary':''}">${r.name}</p><p class="text-xs text-slate-500">${(r.coins||0).toLocaleString()} coins</p></div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+//  NOTIFICATIONS
+// ═══════════════════════════════════════════
+function addNotif(n) {
+  STATE.notifications = [{...n, id:Date.now(), read:false}, ...(STATE.notifications||[])].slice(0,20);
+  document.getElementById('notif-dot').classList.remove('hidden');
+  saveState();
+}
+
+function scheduleNotifications() {
+  // Simulate push notification reminders
+  setTimeout(()=>addNotif({title:'🔔 Daily bonus waiting!',body:'Log in every day to earn bonus coins.',time:'now'}), 30000);
+}
+
+function showNotifPanel() {
+  document.getElementById('notif-dot').classList.add('hidden');
+  STATE.notifications.forEach(n=>n.read=true);
+  saveState();
+  const list=document.getElementById('notif-list');
+  const notifs=STATE.notifications||[];
+  list.innerHTML=notifs.length?notifs.map(n=>`
+    <div class="flex gap-3 p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
+      <span class="material-symbols-outlined text-primary flex-shrink-0 mt-0.5">notifications</span>
+      <div><p class="text-sm font-bold">${n.title}</p><p class="text-xs text-slate-500">${n.body}</p><p class="text-[10px] text-slate-400 mt-1">${n.time}</p></div>
+    </div>`).join(''):'<p class="text-sm text-slate-400 text-center py-4">No notifications yet</p>';
+  document.getElementById('notif-panel').classList.remove('hidden');
+}
+
+function closeNotifPanel(e) {
+  if(!e||e.target===document.getElementById('notif-panel'))
+    document.getElementById('notif-panel').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════
+//  REFER
+// ═══════════════════════════════════════════
+function copyReferCode() {
+  navigator.clipboard.writeText(STATE.referralCode).catch(()=>{});
+  document.getElementById('copy-lbl').textContent='Copied!';
+  document.getElementById('copy-ok').classList.remove('hidden');
+  setTimeout(()=>{document.getElementById('copy-lbl').textContent='Copy';document.getElementById('copy-ok').classList.add('hidden');},2500);
+}
+function shareReferLink() {
+  const url='https://honeybee.app/join?ref='+STATE.referralCode;
+  if(navigator.share) navigator.share({title:'Join HoneyBee!',text:'Use my code '+STATE.referralCode,url});
+  else navigator.clipboard.writeText(url).then(()=>showToast('Link copied!'));
+}
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+let toastTimer;
+function showToast(msg, isErr=false) {
+  const t=document.getElementById('coin-toast');
+  const m=document.getElementById('toast-msg');
+  m.textContent=msg;
+  t.querySelector('div').className=`${isErr?'bg-red-600':'bg-slate-900'} text-${isErr?'white':'primary'} px-6 py-3 rounded-full flex items-center gap-2 shadow-2xl pop`;
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.add('hidden'),2500);
+}
+
+// ═══════════════════════════════════════════
+//  DARK MODE
+// ═══════════════════════════════════════════
+function toggleDark() {
+  document.documentElement.classList.toggle('dark');
+  const isDark=document.documentElement.classList.contains('dark');
+  document.getElementById('dark-icon').textContent=isDark?'light_mode':'dark_mode';
+  localStorage.setItem('hb_dark',isDark?'1':'0');
+}
+if(localStorage.getItem('hb_dark')==='1') {
+  document.documentElement.classList.add('dark');
+}
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+const SCREENS=['auth','home','earn','scratch','offerwall','spin','withdraw','refer','leaderboard','profile'];
+function showScreen(name) {
+  event && event.preventDefault && event.preventDefault();
+  SCREENS.forEach(s=>{
+    const el=document.getElementById('screen-'+s);
+    if(el) el.classList.toggle('active',s===name);
+  });
+  if(name==='spin') initWheel();
+  if(name==='scratch') initScratchCard();
+  if(name==='offerwall') renderOffers();
+  if(name==='leaderboard') switchLBTab('global');
+  if(name==='home') updateHomeStreakUI();
+  updateAllUI();
+}
+
+// ═══════════════════════════════════════════
+//  UI UPDATES
+// ═══════════════════════════════════════════
+function updateCoinUI() {
+  const coins=STATE.coins||0;
+  ['home-coins'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=coins.toLocaleString();});
+  const cash=coinsToRupees(coins);
+  const hc=document.getElementById('home-cash');if(hc)hc.textContent='₹'+cash;
+  const wb=document.getElementById('wd-balance');if(wb)wb.textContent='₹'+cash;
+  const wc=document.getElementById('wd-coins');if(wc)wc.textContent=coins+' coins';
+  const pt=document.getElementById('profile-total');if(pt)pt.textContent='₹'+coinsToRupees(STATE.totalCoins||0);
+  const pct=document.getElementById('profile-coins-total');if(pct)pct.textContent=(STATE.totalCoins||0)+' coins total';
+  const lbmy=document.getElementById('lb-mycoins');if(lbmy)lbmy.textContent=coins+' coins';
+}
+
+function updateAdUI() {
+  const t=Object.values(STATE.adsToday).reduce((a,b)=>a+b,0);
+  const sa=document.getElementById('stat-ads');if(sa)sa.textContent=t;
+  const ar=document.getElementById('ads-remaining');if(ar)ar.textContent=(DB.adLimits.admob-STATE.adsToday.admob)+' left today';
+  ['admob','unity','applovin'].forEach(n=>{
+    const el=document.getElementById('earn-'+n+'-left');
+    if(el)el.textContent=(DB.adLimits[n]-STATE.adsToday[n])+' / '+DB.adLimits[n]+' remaining';
+  });
+  // History
+  const hist=document.getElementById('ad-history');
+  if(hist){
+    hist.innerHTML=STATE.adHistory.length?STATE.adHistory.map(h=>`
+      <div class="flex items-center justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+        <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-sm">play_circle</span>
+          <div><p class="text-sm font-semibold">${h.network}</p><p class="text-xs text-slate-400">${h.time}</p></div></div>
+        <span class="font-bold text-sm text-primary">+${h.coins}</span>
+      </div>`).join(''):'<p class="text-sm text-slate-400 text-center py-4">No ads watched yet today</p>';
+  }
+}
+
+function updateWDHistory() {
+  const el=document.getElementById('wd-history');
+  if(!el) return;
+  const statusColors={pending:'text-amber-600',processing:'text-blue-500',completed:'text-green-600',rejected:'text-red-500'};
+  el.innerHTML=STATE.withdrawals.length?STATE.withdrawals.slice(0,5).map(w=>`
+    <div class="flex items-center justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+      <div><p class="text-sm font-bold">₹${w.amount}</p><p class="text-xs text-slate-400">${w.method} · ${w.time}</p></div>
+      <span class="badge-pill ${w.status==='completed'?'bg-green-100 dark:bg-green-900/30 text-green-700':'bg-slate-100 dark:bg-white/10 text-slate-600'}">${w.status}</span>
+    </div>`).join(''):'<p class="text-sm text-slate-400 text-center py-4">No withdrawals yet</p>';
+}
+
+function updateWDUI() { updateCoinUI(); updateWDHistory(); }
+
+function updateHomeStreakUI() {
+  const streak=STATE.streak||0;
+  const sc=document.getElementById('streak-count');if(sc)sc.textContent=streak+' day'+(streak!==1?'s':'');
+  const ss=document.getElementById('stat-streak');if(ss)ss.textContent=streak;
+  const days=document.getElementById('streak-days');
+  if(days){
+    days.innerHTML=Array.from({length:7},(_,i)=>{
+      const active=i<streak;
+      return`<div class="flex-1 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${active?'bg-primary text-slate-900 streak-active':'bg-slate-100 dark:bg-white/10 text-slate-400'}">${['M','T','W','T','F','S','S'][i]}</div>`;
+    }).join('');
+  }
+}
+
+function updateReferUI() {
+  const rc=document.getElementById('refer-code');if(rc)rc.textContent=STATE.referralCode;
+  const rcount=document.getElementById('ref-count');if(rcount)rcount.textContent=(STATE.referrals||[]).length;
+  const rlist=document.getElementById('ref-list');
+  if(rlist){
+    const refs=STATE.referrals||[];
+    rlist.innerHTML=refs.length?refs.map(r=>`
+      <div class="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-white/5">
+        <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">${(r||'?').slice(0,2).toUpperCase()}</div>
+        <p class="text-sm font-medium flex-1">${r}</p>
+        <span class="badge-pill bg-primary/20 text-amber-700">+500</span>
+      </div>`).join(''):'<p class="text-sm text-slate-400 text-center py-4">No referrals yet. Start sharing!</p>';
+  }
+}
+
+function updateProfileUI() {
+  const pn=document.getElementById('profile-name');if(pn)pn.textContent=STATE.name;
+  const pe=document.getElementById('profile-email');if(pe)pe.textContent=STATE.email;
+  const pi=document.getElementById('profile-initials');if(pi)pi.textContent=(STATE.name||'U').slice(0,2).toUpperCase();
+  const hu=document.getElementById('home-username');if(hu)hu.textContent=STATE.name||'Guest';
+  const lbmn=document.getElementById('lb-myname');if(lbmn)lbmn.textContent='You ('+STATE.name+')';
+  const ds=document.getElementById('device-status');if(ds)ds.textContent=STATE.deviceId?'Device OK':'Unverified';
+  const sr=document.getElementById('stat-refs');if(sr)sr.textContent=(STATE.referrals||[]).length;
+}
+
+function updateAllUI() {
+  updateCoinUI();
+  updateAdUI();
+  updateWDUI();
+  updateHomeStreakUI();
+  updateReferUI();
+  updateProfileUI();
+  const sl=document.getElementById('spin-left');if(sl)sl.textContent=(STATE.spinLeft||0)+' free spin'+(STATE.spinLeft!==1?'s':'');
+  const scl=document.getElementById('scratch-left');if(scl)scl.textContent=(STATE.scratchCardsLeft||0)+' cards left';
+  const scb=document.getElementById('scratch-count-badge');if(scb)scb.textContent=(STATE.scratchCardsLeft||0)+' left';
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+loadState();
+if (STATE.uid) postLogin(); // auto-login if session exists
+</script>
+</body>
+</html>
