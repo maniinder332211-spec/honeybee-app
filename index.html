@@ -1446,29 +1446,167 @@ if (STATE.uid) postLogin(); // auto-login if session exists
 </body>
 </html>
 <script>
-let coins = localStorage.getItem("coins") ? parseInt(localStorage.getItem("coins")) : 0;
-let cooldown = false;
+// ---------------------------
+// HoneyBee Ultimate Reward Script
+// ---------------------------
 
+// ---------------------------
+// Device & Coins Setup
+// ---------------------------
+let coins = localStorage.getItem("coins") ? parseInt(localStorage.getItem("coins")) : 0;
+let adCount = localStorage.getItem("adCount") ? parseInt(localStorage.getItem("adCount")) : 0;
+let adDate = localStorage.getItem("adDate");
+let withdrawDate = localStorage.getItem("withdrawDate");
+let loginDate = localStorage.getItem("loginDate");
+let deviceID = localStorage.getItem("deviceID");
+let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+
+// Anti-cheat device ID
+if(!deviceID){
+  deviceID = "device_" + Math.random().toString(36).substring(2);
+  localStorage.setItem("deviceID", deviceID);
+}
+
+// Display coins
 document.getElementById("coinBalance").innerText = coins;
 
-function watchAd() {
+// ---------------------------
+// Daily Login Bonus
+// ---------------------------
+let today = new Date().toDateString();
+if(loginDate !== today){
+  coins += 50;
+  localStorage.setItem("coins", coins);
+  loginDate = today;
+  localStorage.setItem("loginDate", today);
+  alert("Daily login bonus: +50 coins!");
+  document.getElementById("coinBalance").innerText = coins;
+}
 
-  if (cooldown) {
+// ---------------------------
+// Ad Cooldown
+// ---------------------------
+let cooldown = false;
+
+// ---------------------------
+// Watch Ad Function
+// ---------------------------
+function watchAd() {
+  let today = new Date().toDateString();
+
+  // Reset daily count if new day
+  if(adDate !== today){
+    adDate = today;
+    adCount = 0;
+  }
+
+  // Daily ad limit check
+  if(adCount >= 20){
+    alert("Daily ad limit reached. Come back tomorrow!");
+    return;
+  }
+
+  // Cooldown check
+  if(cooldown){
     alert("Please wait 10 seconds before watching another ad.");
     return;
   }
 
+  // Earn coins
   coins += 10;
+  adCount++;
+  cooldown = true;
+
+  setTimeout(() => { cooldown = false; }, 10000);
+
+  // Save
   localStorage.setItem("coins", coins);
+  localStorage.setItem("adCount", adCount);
+  localStorage.setItem("adDate", today);
+
+  // Update display
   document.getElementById("coinBalance").innerText = coins;
 
   alert("You earned 10 coins!");
-
-  cooldown = true;
-
-  setTimeout(function() {
-    cooldown = false;
-  }, 10000);
-
 }
+
+// ---------------------------
+// Withdraw Function
+// ---------------------------
+function withdrawCoins() {
+  let today = new Date().toDateString();
+
+  if(withdrawDate === today){
+    alert("You already withdrew today.");
+    return;
+  }
+
+  if(coins >= 1000){
+    coins -= 1000;
+    localStorage.setItem("coins", coins);
+    withdrawDate = today;
+    localStorage.setItem("withdrawDate", today);
+    document.getElementById("coinBalance").innerText = coins;
+    alert("Withdraw request sent for ₹10!");
+  } else {
+    alert("You need 1000 coins to withdraw ₹10.");
+  }
+}
+
+// ---------------------------
+// Spin Wheel Function
+// ---------------------------
+function spinWheel(){
+  let rewards = [10,20,30,40,50,60,70,80,90,100];
+  let reward = rewards[Math.floor(Math.random() * rewards.length)];
+  coins += reward;
+  localStorage.setItem("coins", coins);
+  document.getElementById("coinBalance").innerText = coins;
+  alert("Spin Wheel reward: +" + reward + " coins!");
+}
+
+// ---------------------------
+// Scratch Card Function
+// ---------------------------
+function scratchCard(){
+  let reward = Math.floor(Math.random()*181)+20; // 20–200 coins
+  coins += reward;
+  localStorage.setItem("coins", coins);
+  document.getElementById("coinBalance").innerText = coins;
+  alert("Scratch Card reward: +" + reward + " coins!");
+}
+
+// ---------------------------
+// Referral System
+// ---------------------------
+function addReferral(refCode){
+  // simple localStorage referral tracking
+  let referrals = JSON.parse(localStorage.getItem("referrals")) || [];
+  if(!referrals.includes(refCode)){
+    referrals.push(refCode);
+    localStorage.setItem("referrals", JSON.stringify(referrals));
+    coins += 50;
+    localStorage.setItem("coins", coins);
+    document.getElementById("coinBalance").innerText = coins;
+    alert("Referral bonus: +50 coins!");
+  }
+}
+
+// ---------------------------
+// Leaderboard Update
+// ---------------------------
+function updateLeaderboard(){
+  let existing = leaderboard.findIndex(l=>l.deviceID===deviceID);
+  if(existing !== -1){
+    leaderboard[existing].coins = coins;
+  } else {
+    leaderboard.push({deviceID, coins});
+  }
+  leaderboard.sort((a,b)=>b.coins - a.coins);
+  localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+}
+
+// Call leaderboard update every 5 sec
+setInterval(updateLeaderboard,5000);
+
 </script>
